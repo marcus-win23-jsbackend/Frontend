@@ -1,0 +1,257 @@
+﻿@page "/account/details"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using Frontend.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+
+<PageTitle>Profile</PageTitle>
+
+<div class="account-details">
+    @if (!string.IsNullOrEmpty(StatusMessage))
+    {
+        if (IsSuccess)
+        {
+            <div class="alert alert-success">
+                @StatusMessage
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger">
+                @StatusMessage
+            </div>
+        }
+    }
+
+    <div class="section-title">
+        <h2>Account Details</h2>
+    </div>
+    <EditForm Model="BasicInfo" FormName="basicInfoForm" OnValidSubmit="UpdateBasicInfoAsync" class="basic-info-form">
+        <DataAnnotationsValidator />
+        <h5 class="blue form-title">Basic info</h5>
+        <div class="first-name">
+            <label for="first-name">First Name</label>
+            <InputText id="first-name" @bind-Value="BasicInfo.FirstName" class="form-control" placeholder="Enter your first name" />
+            <ValidationMessage For="() => BasicInfo.FirstName" />
+        </div>
+        <div class="last-name">
+            <label for="last-name">Last Name</label>
+            <InputText id="last-name" @bind-Value="BasicInfo.LastName" class="form-control" placeholder="Enter your last name" />
+            <ValidationMessage For="() => BasicInfo.LastName" />
+        </div>
+        <div class="email">
+            <label for="email">Email</label>
+            <InputText id="email" @bind-Value="BasicInfo.Email" class="form-control" placeholder="Enter your email address" />
+            <ValidationMessage For="() => BasicInfo.Email" />
+        </div>
+        <div class="phone">
+            <label for="phone">Phone</label>
+            <InputText id="phone" @bind-Value="BasicInfo.PhoneNumber" class="form-control" placeholder="Enter your phone" />
+            <ValidationMessage For="() => BasicInfo.PhoneNumber" />
+        </div>
+        <div class="biography">
+            <label for="bio">Biography</label>
+            <InputTextArea id="bio" @bind-Value="BasicInfo.Biography" class="form-control" rows="3" cols="30"></InputTextArea>
+            <ValidationMessage For="() => BasicInfo.Biography" />
+        </div>
+        <div class="buttons">
+            <button type="reset" class="btn-gray">Cancel</button>
+            <button type="submit" class="btn-theme">Save Changes</button>
+        </div>
+    </EditForm>
+    <EditForm Model="AddressInfo" FormName="addressInfoForm" OnValidSubmit="UpdateAddressInfoAsync" class="address-form">
+        <DataAnnotationsValidator />
+        <h5 class="blue form-title">Address</h5>
+        <div class="address1">
+            <label for="address1">Address Line 1</label>
+            <InputText id="address1" @bind-Value="AddressInfo.AddressLine_1" class="form-control" />
+            <ValidationMessage For="() => AddressInfo.AddressLine_1" />
+        </div>
+        <div class="address2">
+            <label for="address2">Address Line 2</label>
+            <InputText id="address2" @bind-Value="AddressInfo.AddressLine_2" class="form-control" />
+            <ValidationMessage For="() => AddressInfo.AddressLine_2" />
+        </div>
+        <div class="postal-code">
+            <label for="postal-code">Postal Code</label>
+            <InputText id="postal-code" @bind-Value="AddressInfo.PostalCode" class="form-control" />
+            <ValidationMessage For="() => AddressInfo.PostalCode" />
+        </div>
+        <div class="city">
+            <label for="city">City</label>
+            <InputText id="city" @bind-Value="AddressInfo.City" class="form-control" />
+            <ValidationMessage For="() => AddressInfo.City" />
+        </div>
+        <div class="buttons">
+            <button type="reset" class="btn-gray">Cancel</button>
+            <button type="submit" class="btn-theme">Save Changes</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+
+    private ApplicationUser user = default!;
+    private string? StatusMessage;
+    private bool IsSuccess;
+
+    private BasicInfoModel BasicInfo = new BasicInfoModel();
+    private AddressInfoModel AddressInfo = new AddressInfoModel();
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (HttpContext.User?.Identity?.IsAuthenticated ?? false)
+            {
+                user = await UserManager.GetUserAsync(HttpContext.User);
+
+                if (user != null)
+                {
+                    // Fetching basic info
+                    BasicInfo.FirstName = user.FirstName;
+                    BasicInfo.LastName = user.LastName;
+                    BasicInfo.Email = user.Email;
+                    BasicInfo.PhoneNumber = await UserManager.GetPhoneNumberAsync(user);
+                    BasicInfo.Biography = user.Biography;
+
+                    // Fetching address info
+                    if (user.Address != null)
+                    {
+                        AddressInfo.AddressLine_1 = user.Address.AddressLine_1;
+                        AddressInfo.AddressLine_2 = user.Address.AddressLine_2;
+                        AddressInfo.PostalCode = user.Address.PostalCode;
+                        AddressInfo.City = user.Address.City;
+                    }
+                }
+                else
+                {
+                    // Handle user not found
+                    StatusMessage = "User not found.";
+                    IsSuccess = false;
+                }
+            }
+            else
+            {
+                // Handle unauthenticated user
+                StatusMessage = "User is not authenticated.";
+                IsSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log exception for debugging
+            StatusMessage = $"Exception: {ex.Message}";
+            IsSuccess = false;
+        }
+    }
+
+    private async Task UpdateBasicInfoAsync()
+    {
+        await InvokeAsync(async () =>
+        {
+            if (user != null)
+            {
+                user.FirstName = BasicInfo.FirstName;
+                user.LastName = BasicInfo.LastName;
+                user.Email = BasicInfo.Email;
+                user.PhoneNumber = BasicInfo.PhoneNumber;
+                user.Biography = BasicInfo.Biography;
+
+                var result = await UserManager.UpdateAsync(user);
+                if (result.Succeeded)
+                {
+                    StatusMessage = "Your basic info has been updated.";
+                    IsSuccess = true;
+                }
+                else
+                {
+                    StatusMessage = "Error updating basic info.";
+                    IsSuccess = false;
+                }
+
+                await SignInManager.RefreshSignInAsync(user);
+            }
+        });
+    }
+
+    private async Task UpdateAddressInfoAsync()
+    {
+        await InvokeAsync(async () =>
+        {
+            if (user != null)
+            {
+                if (user.Address == null)
+                {
+                    user.Address = new AddressEntity();
+                }
+
+                user.Address.AddressLine_1 = AddressInfo.AddressLine_1;
+                user.Address.AddressLine_2 = AddressInfo.AddressLine_2;
+                user.Address.PostalCode = AddressInfo.PostalCode;
+                user.Address.City = AddressInfo.City;
+
+                var result = await UserManager.UpdateAsync(user);
+                if (result.Succeeded)
+                {
+                    StatusMessage = "Your address info has been updated.";
+                    IsSuccess = true;
+                }
+                else
+                {
+                    StatusMessage = "Error updating address info.";
+                    IsSuccess = false;
+                }
+
+                await SignInManager.RefreshSignInAsync(user);
+            }
+        });
+    }
+
+    private class BasicInfoModel
+    {
+        [Required]
+        [Display(Name = "First Name")]
+        public string? FirstName { get; set; }
+
+        [Required]
+        [Display(Name = "Last Name")]
+        public string? LastName { get; set; }
+
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string? Email { get; set; }
+
+        [Phone]
+        [Display(Name = "Phone Number")]
+        public string? PhoneNumber { get; set; }
+
+        [Display(Name = "Biography")]
+        public string? Biography { get; set; }
+    }
+
+    private class AddressInfoModel
+    {
+        [Required]
+        [Display(Name = "Address Line 1")]
+        public string? AddressLine_1 { get; set; }
+
+        [Display(Name = "Address Line 2")]
+        public string? AddressLine_2 { get; set; }
+
+        [Required]
+        [Display(Name = "Postal Code")]
+        public string? PostalCode { get; set; }
+
+        [Required]
+        [Display(Name = "City")]
+        public string? City { get; set; }
+    }
+}

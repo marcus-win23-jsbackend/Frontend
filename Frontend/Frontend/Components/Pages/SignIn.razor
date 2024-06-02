@@ -1,0 +1,106 @@
+﻿@page "/signin"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using Frontend.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<SignIn> Logger
+@inject NavigationManager NavigationManager
+
+<PageTitle>Sign in</PageTitle>
+
+<section id="signin">
+    <div class="container">
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger">
+                @ErrorMessage
+            </div>
+        }
+
+        <div class="section-title">
+            <h1>Welcome back</h1>
+            <p>Dont have an account yet? <a href="/signup">Sign up here</a></p>
+        </div>
+        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="LoginUser" FormName="signin" novalidate class="form">
+            <DataAnnotationsValidator />
+
+            <div id="form-email" class="input-group email">
+                <label>Email</label>
+                <InputText type="email" @bind-Value="Input.Email" class="form-control" autocomplete="email" aria-required="true" placeholder="Enter your email" />
+            </div>
+            <div id="form-password" class="input-group password">
+                <label>Password</label>
+                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="password" aria-required="true" placeholder="Enter your password" />
+            </div>
+            <div id="form-checkbox" class="checkbox-group box">
+                <div class="input-group">
+                    <InputCheckbox @bind-Value="Input.RememberMe" class="checkbox" autocomplete="rememberme" />
+                    <label>Remember me</label>
+                </div>
+            </div>
+            <div class="form-button">
+                <button type="submit" class="btn btn-theme">Sign in</button>
+            </div>
+            <div class="center-content">
+                <a class="forgot-password" href="#">Forgot your password?</a>
+            </div>
+
+        </EditForm>
+    </div>
+</section>
+
+@code {
+
+    private string? ErrorMessage { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear the existing external cookie to ensure a clean login process
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        // This doesn't count login failures towards account lockout
+        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            NavigationManager.NavigateTo(ReturnUrl ?? "/");
+        }
+        else
+        {
+            ErrorMessage = "Incorrect email or password";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Remember me?")]
+        public bool RememberMe { get; set; }
+    }
+}

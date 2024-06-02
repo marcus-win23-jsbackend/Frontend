@@ -1,0 +1,56 @@
+﻿<header>
+    <div class="container">
+        <a id="logo" href="/">
+            <img src="/images/logos/logotype-light-theme.svg" />
+        </a>
+
+        <div id="menu">
+            <nav>
+                <NavLink class="menu-link" href="" Match="NavLinkMatch.All">Overview</NavLink>
+                <NavLink class="menu-link" href="/#features">Features</NavLink>
+                
+                <AuthorizeView>
+                    <Authorized>
+                        <NavLink class="menu-link" href="/courses">Courses</NavLink>
+                    </Authorized>
+                </AuthorizeView>
+                    
+                
+                <NavLink class="menu-link" href="/contacts">Contact</NavLink>
+            </nav>
+        </div>
+
+        <div class="btn-switch">
+            <label>Light</label>
+            <label class="switch" for="switch-mode">
+                <input type="checkbox" id="switch-mode" />
+                <span class="slider round"></span>
+            </label>
+            <label>Dark</label>
+        </div>
+
+        <div class="account-buttons">
+
+
+            <AuthorizeView>
+                <Authorized>
+                    <div class="profile">
+                        <div class="profile-image">
+                            <a href="/account/details">
+                                <img src="/images/uploads/profiles/avatar.svg" />
+                            </a>
+                        </div>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <a class="btn btn-gray" href="/signin"><i class="fa-regular fa-right-to-bracket"></i>Sign In</a>
+                    <a class="btn btn-theme" href="/signup"><i class="fa-regular fa-user"></i>Sign Up</a>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+
+        <div class="btn-mobile">
+            <a href="#"><img src="~/images/other/hamburgermenu.svg" /></a>
+        </div>
+    </div>
+</header>
